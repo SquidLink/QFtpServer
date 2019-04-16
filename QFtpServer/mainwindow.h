@@ -27,6 +27,7 @@ public:
 
     void showExpanded();
 
+    void setConfigPath(QString path);
 private slots:
     void on_pushButtonRestartServer_clicked();
 
@@ -43,6 +44,9 @@ private:
 
     // This is the FTP server object.
     FtpServer *server;
+
+    // json config file path
+    QString configPath;
 
     // Load the stored settings.
     void loadSettings();

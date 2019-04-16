@@ -8,6 +8,10 @@
 #include <QFileDialog>
 #include <QIntValidator>
 
+#include <QDir>
+#include <QJsonObject>
+#include <QJsonDocument>
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
 {
@@ -38,6 +42,12 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Set window icon.
     setWindowIcon(QIcon(":/icons/appicon"));
+
+    // debug
+#ifdef QT_DEBUG
+    if (this->configPath.isEmpty())
+        this->configPath = QDir::currentPath() + "/config.json";
+#endif
 
     loadSettings();
     server = 0;
@@ -107,35 +117,90 @@ void MainWindow::showExpanded()
 
 void MainWindow::loadSettings()
 {
+    // try to load config path
+    QJsonObject config, ftp;
+    QFile file;
+    file.setFileName(this->configPath);
+    if (file.exists() && file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QString jsonString = file.readAll();
+        file.close();
+
+        QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8());
+        config = doc.object();
+
+        if (config.contains("ftp") && config["ftp"].isObject())
+            ftp = config["ftp"].toObject();
+    }
+
+    // init default value if not exists
+    if (!ftp.contains("port")) {
     // UNIX-derived systems such as Linux and Android don't allow access to
     // port 21 for non-root programs, so we will use port 2121 instead.
-    QString defaultPort;
 #if defined(Q_OS_UNIX)
-    defaultPort = "2121";
+    ftp["port"] = "2121";
 #else
-    defaultPort = "21";
+    ftp["port"] = "21";
 #endif
+    }
 
-    QSettings settings;
-    ui->lineEditPort->setText(settings.value("settings/port", defaultPort).toString());
-    ui->lineEditUserName->setText(settings.value("settings/username", "admin").toString());
-    ui->lineEditPassword->setText(settings.value("settings/password", "qt").toString());
-    ui->lineEditRootPath->setText(settings.value("settings/rootpath", QDir::rootPath()).toString());
-    ui->checkBoxAnonymous->setChecked(settings.value("settings/anonymous", false).toBool());
-    ui->checkBoxReadOnly->setChecked(settings.value("settings/readonly", false).toBool());
-    ui->checkBoxOnlyOneIpAllowed->setChecked(settings.value("settings/oneip", true).toBool());
+    if (!ftp.contains("username"))
+        ftp["username"] = "admin";
+    if (!ftp.contains("password"))
+        ftp["password"] = "qt";
+    if (!ftp.contains("rootpath"))
+        ftp["rootpath"] = QDir::rootPath();
+    if (!ftp.contains("anonymous"))
+        ftp["anonymous"] = false;
+    if (!ftp.contains("readonly"))
+        ftp["readonly"] = false;
+    if (!ftp.contains("oneip"))
+        ftp["oneip"] = true;
+
+    ui->lineEditPort->setText(ftp["port"].toString());
+    ui->lineEditUserName->setText(ftp["username"].toString());
+    ui->lineEditPassword->setText(ftp["password"].toString());
+    ui->lineEditRootPath->setText(ftp["rootpath"].toString());
+    ui->checkBoxAnonymous->setChecked(ftp["anonymous"].toBool());
+    ui->checkBoxReadOnly->setChecked(ftp["readonly"].toBool());
+    ui->checkBoxOnlyOneIpAllowed->setChecked(ftp["oneip"].toBool());
 }
 
 void MainWindow::saveSettings()
 {
-    QSettings settings;
-    settings.setValue("settings/port", ui->lineEditPort->text());
-    settings.setValue("settings/username", ui->lineEditUserName->text());
-    settings.setValue("settings/password", ui->lineEditPassword->text());
-    settings.setValue("settings/rootpath", ui->lineEditRootPath->text());
-    settings.setValue("settings/anonymous", ui->checkBoxAnonymous->isChecked());
-    settings.setValue("settings/readonly", ui->checkBoxReadOnly->isChecked());
-    settings.setValue("settings/oneip", ui->checkBoxOnlyOneIpAllowed->isChecked());
+    QJsonObject config, ftp;
+
+    ftp["port"] = ui->lineEditPort->text();
+    ftp["username"] = ui->lineEditUserName->text();
+    ftp["password"] = ui->lineEditPassword->text();
+    ftp["rootpath"] = ui->lineEditRootPath->text();
+    ftp["anonymous"] = ui->checkBoxAnonymous->isChecked();
+    ftp["readonly"] = ui->checkBoxReadOnly->isChecked();
+    ftp["oneip"] = ui->checkBoxOnlyOneIpAllowed->isChecked();
+
+    // save settings to json file
+    QFile file;
+    file.setFileName(this->configPath);
+    if (file.exists() && file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QString jsonString = file.readAll();
+        file.close();
+
+        QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8());
+        config = doc.object();
+    }
+
+    if (!file.open(QIODevice::WriteOnly)) {
+        qWarning("Couldn't open the file.");
+        return;
+    }
+
+    // overwrite
+    config["ftp"] = ftp;
+
+    QJsonDocument doc;
+    doc.setObject(config);
+    QByteArray json = doc.toJson();
+    file.write(json);
+    file.close();
 }
 
 void MainWindow::startServer()
@@ -203,4 +268,8 @@ void MainWindow::on_pushButtonShowDebugLog_clicked()
 void MainWindow::on_pushButtonExit_clicked()
 {
     close();
+}
+
+void MainWindow::setConfigPath(QString path) {
+    this->configPath = path;
 }

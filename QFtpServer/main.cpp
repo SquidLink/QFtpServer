@@ -12,6 +12,13 @@ int main(int argc, char *argv[])
 
     // Show the main window.
     MainWindow mainWindow;
+
+    // second argv is the path of config file.
+    if (argc > 2) {
+        QString name(argv[1]);
+        mainWindow.setConfigPath(name);
+    }
+
     mainWindow.setOrientation(MainWindow::ScreenOrientationAuto);
     mainWindow.showExpanded();
 
