@@ -27,7 +27,11 @@ public:
 
     void showExpanded();
 
-    void setConfigPath(QString path);
+    // Load the stored settings.
+    void loadSettings(QString path);
+
+    // Restart the FTP server.
+    void startServer();
 private slots:
     void on_pushButtonRestartServer_clicked();
 
@@ -43,19 +47,14 @@ private:
     Ui::MainWindow *ui;
 
     // This is the FTP server object.
-    FtpServer *server;
+    FtpServer *server = nullptr;
 
     // json config file path
     QString configPath;
 
-    // Load the stored settings.
-    void loadSettings();
 
     // Save the current settings.
     void saveSettings();
-
-    // Restart the FTP server.
-    void startServer();
 };
 
 #endif // MAINWINDOW_H

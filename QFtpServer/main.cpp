@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 
 #include <QApplication>
+#include <QDir>
 
 int main(int argc, char *argv[])
 {
@@ -12,15 +13,18 @@ int main(int argc, char *argv[])
 
     // Show the main window.
     MainWindow mainWindow;
-
-    // second argv is the path of config file.
-    if (argc >= 2) {
-        QString name(argv[1]);
-        mainWindow.setConfigPath(name);
-    }
-
     mainWindow.setOrientation(MainWindow::ScreenOrientationAuto);
     mainWindow.showExpanded();
+
+    // start server
+    // second argv is the path of config file.
+    QString config = (argc > 1) ? argv[1] : "";
+
+    if (config.isEmpty())
+        config = QDir::currentPath() + "/config.json";
+
+    mainWindow.loadSettings(config);
+    mainWindow.startServer();
 
     return app.exec();
 }

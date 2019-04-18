@@ -11,6 +11,7 @@
 #include <QDir>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -42,16 +43,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Set window icon.
     setWindowIcon(QIcon(":/icons/appicon"));
-
-    // debug
-#ifdef QT_DEBUG
-    if (this->configPath.isEmpty())
-        this->configPath = QDir::currentPath() + "/config.json";
-#endif
-
-    loadSettings();
-    server = 0;
-    startServer();
 }
 
 MainWindow::~MainWindow()
@@ -115,8 +106,10 @@ void MainWindow::showExpanded()
 #endif
 }
 
-void MainWindow::loadSettings()
+void MainWindow::loadSettings(QString path)
 {
+    this->configPath = path;
+
     // try to load config path
     QJsonObject config, ftp;
     QFile file;
@@ -268,8 +261,4 @@ void MainWindow::on_pushButtonShowDebugLog_clicked()
 void MainWindow::on_pushButtonExit_clicked()
 {
     close();
-}
-
-void MainWindow::setConfigPath(QString path) {
-    this->configPath = path;
 }
